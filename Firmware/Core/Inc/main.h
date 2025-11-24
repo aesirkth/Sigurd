@@ -32,6 +32,19 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+
+
+uint32_t id_val;
+
+
+
+
+
+
+
+
+
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

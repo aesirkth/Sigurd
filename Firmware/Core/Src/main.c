@@ -104,7 +104,6 @@ int main(void)
   adc_init();
 
 
-  uint32_t id_val = 0;
   id_val = AD717X_ReadRegister(adc_dev, AD717X_ID_REG);
 
   /* USER CODE END 2 */

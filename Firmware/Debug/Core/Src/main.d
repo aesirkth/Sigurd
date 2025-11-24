@@ -25,11 +25,11 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_spi.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_spi_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h \
- C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/ad717x.h \
- C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/no_os_spi.h \
- C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/no_os_util.h \
- C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/ad411x_regs.h \
- C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/ad717x.h
+ C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/ad717x.h \
+ C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/no_os_spi.h \
+ C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/no_os_util.h \
+ C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/ad411x_regs.h \
+ C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/ad717x.h
 ../Core/Inc/main.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal.h:
 ../Core/Inc/stm32u5xx_hal_conf.h:
@@ -57,8 +57,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_spi.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_spi_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h:
-C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/ad717x.h:
-C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/no_os_spi.h:
-C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/no_os_util.h:
-C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/ad411x_regs.h:
-C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/ad717x.h:
+C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/ad717x.h:
+C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/no_os_spi.h:
+C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/no_os_util.h:
+C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/ad411x_regs.h:
+C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/ad717x.h:

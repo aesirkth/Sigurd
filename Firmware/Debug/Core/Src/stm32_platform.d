@@ -25,10 +25,10 @@ Core/Src/stm32_platform.o: ../Core/Src/stm32_platform.c \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_spi.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_spi_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h \
- C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/no_os_spi.h \
- C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/no_os_delay.h \
- C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/no_os_error.h \
- C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/no_os_util.h
+ C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/no_os_spi.h \
+ C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/no_os_delay.h \
+ C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/no_os_error.h \
+ C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/no_os_util.h
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal.h:
 ../Core/Inc/stm32u5xx_hal_conf.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_rcc.h:
@@ -55,7 +55,7 @@ Core/Src/stm32_platform.o: ../Core/Src/stm32_platform.c \
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_spi.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_spi_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h:
-C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/no_os_spi.h:
-C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/no_os_delay.h:
-C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/no_os_error.h:
-C:/Users/Alex/Sensor-Board-Code/SensorBoard/Core/Src/adc_lib/ad717x/no_os_util.h:
+C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/no_os_spi.h:
+C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/no_os_delay.h:
+C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/no_os_error.h:
+C:/Users/Alex/Sigurd/Firmware/Core/Src/adc_lib/ad717x/no_os_util.h:

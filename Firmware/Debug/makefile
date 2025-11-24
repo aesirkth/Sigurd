@@ -61,8 +61,8 @@ all: main-build
 main-build: SensorBoard.elf secondary-outputs
 
 # Tool invocations
-SensorBoard.elf SensorBoard.map: $(OBJS) $(USER_OBJS) C:\Users\Alex\Sensor-Board-Code\SensorBoard\STM32U575CGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "SensorBoard.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m33 -T"C:\Users\Alex\Sensor-Board-Code\SensorBoard\STM32U575CGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="SensorBoard.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+SensorBoard.elf SensorBoard.map: $(OBJS) $(USER_OBJS) C:\Users\Alex\Sigurd\Firmware\STM32U575CGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "SensorBoard.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m33 -T"C:\Users\Alex\Sigurd\Firmware\STM32U575CGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="SensorBoard.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
