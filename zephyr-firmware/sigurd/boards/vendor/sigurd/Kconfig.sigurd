@@ -1,0 +1,2 @@
+config BOARD_SIGURD
+	select SOC_STM32U575XX

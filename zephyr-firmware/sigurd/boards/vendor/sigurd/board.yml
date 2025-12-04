@@ -1,0 +1,6 @@
+board:
+  name: sigurd
+  full_name: sigurd propulsion sensor unit
+  vendor: aesir
+  socs:
+    - name: stm32u575xx

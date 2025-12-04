@@ -1,0 +1,79 @@
+/dts-v1/;
+#include <st/u5/stm32u575Xg.dtsi>
+#include <st/u5/stm32u575rgtx-pinctrl.dtsi>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+
+/ {
+	model = "Sigurd board";
+
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+		zephyr,canbus = &fdcan1;
+	};
+
+	aliases {
+		xadc1 = &ext_adc1;
+	};
+
+	//change pins here too
+    leds {
+        compatible = "gpio-leds";
+        
+        led0: led_0 {
+			gpios = <&gpioa 15 GPIO_ACTIVE_HIGH>;
+			label = "TX LED";
+		};
+    };
+
+};
+
+&clk_hse {
+    clock-frequency = <DT_FREQ_M(24)>; /* your crystal MHz */
+    status = "okay";
+};
+
+&pll1 {
+	div-m = <2>;
+	mul-n = <30>;
+	div-q = <4>;
+	div-r = <4>;
+	clocks = <&clk_hse>;
+	status = "okay";
+};
+
+&rcc {
+	clocks = <&pll1>;
+	clock-frequency = <DT_FREQ_M(90)>;
+	ahb-prescaler = <1>;
+	apb1-prescaler = <1>;
+	apb2-prescaler = <1>;
+	apb3-prescaler = <1>;
+};
+
+&fdcan1 {
+	clocks = <&rcc STM32_CLOCK_BUS_APB1_2 0x00000200>,
+		 <&rcc STM32_SRC_PLL1_Q FDCAN1_SEL(1)>;
+	pinctrl-0 = <&fdcan1_rx_pb8 &fdcan1_tx_pb9>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&spi1 {
+    // compatible = "zephyr,spi-emul-controller";
+    // compatible = "spi-device"
+    status = "okay";
+	pinctrl-0 = <&spi1_sck_pa5 &spi1_miso_pa6 &spi1_mosi_pa7>;
+	pinctrl-names = "default";
+    cs-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
+	clock-frequency = <10000000>;
+
+    ext_adc1: ad4111@0 {
+		compatible = "analog,ad4111";
+        status = "okay";
+        reg = <0>;
+        spi-max-frequency = <1000000>;
+    };
+
+};
+
