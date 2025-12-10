@@ -16,10 +16,9 @@
 #include "sensors.h"
 #include "can_com.h"
 
-
 LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
-//static const struct gpio_dt_spec tx_led = GPIO_DT_SPEC_GET(DT_NODELABEL(led0), gpios);
+static const struct gpio_dt_spec tx_led = GPIO_DT_SPEC_GET(DT_NODELABEL(led0), gpios);
 //static const struct gpio_dt_spec rx_led = GPIO_DT_SPEC_GET(DT_NODELABEL(led1), gpios);
 static const struct gpio_dt_spec g_led = GPIO_DT_SPEC_GET(DT_NODELABEL(g), gpios);
 static const struct gpio_dt_spec r_led = GPIO_DT_SPEC_GET(DT_NODELABEL(r), gpios);
@@ -29,7 +28,7 @@ bool test_led_flag = false;
 
 const struct can_filter test_filter = {
     .flags = 0,
-    .id = 0x167,
+    .id = 0x122,
     .mask = 0b11111111111 
 };
 
@@ -66,6 +65,8 @@ int main(void) {
 	init_can();
 	add_filter_can(can_rx_cb, test_filter, NULL);
 
+	init_sensors();
+
 	while(true) {
 
 		if(test_led_flag) { 
@@ -74,11 +75,27 @@ int main(void) {
 		}
 
 		gpio_pin_toggle_dt(&g_led);
-		k_msleep(500);
-	
-		
+
+
+		double pressure = get_pressure(0);
+		double pressure100 = 1000 * pressure;
+		// int32_t pressure100_int = (int32_t) pressure100;
+		int32_t pressure100_int = get_pressure_adc(0);
+
+		// int32_t pressure100_int = 0xAABBCCDD;
+		uint8_t data[4];
+		data[0] = (uint8_t)((pressure100_int >> 24) & 0xFF); 
+		data[1] = (uint8_t)((pressure100_int >> 16) & 0xFF); 
+		data[2] = (uint8_t)((pressure100_int >> 8) & 0xFF);
+		data[3] = (uint8_t)(pressure100_int & 0xFF);
+
+		submit_can_pkt(data, 4);
+
+		k_msleep(502);
 	}
 
+	// brown = VCC
+	// blue = Iout
 
 
 	return 0;

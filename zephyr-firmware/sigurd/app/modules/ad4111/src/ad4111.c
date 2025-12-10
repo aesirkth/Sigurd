@@ -47,31 +47,39 @@ static int ad4111_driver_init(const struct device *dev) {
     }
     
     //Differential measurement, for RTDs
-    chan_map[0].analog_inputs.analog_input_pairs = VIN0_VIN1;
+    chan_map[0].analog_inputs.analog_input_pairs = VIN0_VINCOM;
     chan_map[0].setup_sel = 0;
-    chan_map[1].analog_inputs.analog_input_pairs = VIN2_VIN3;
+
+    chan_map[1].analog_inputs.analog_input_pairs = VIN1_VINCOM;
     chan_map[1].setup_sel = 0;
+    
+
+    chan_map[2].analog_inputs.analog_input_pairs = VIN2_VINCOM;
+    chan_map[2].setup_sel = 0;
+
+    chan_map[3].analog_inputs.analog_input_pairs = VIN3_VINCOM;
+    chan_map[3].setup_sel = 0;
 
     //Sinle-Ended, for thermocouples
-    chan_map[2].analog_inputs.analog_input_pairs = VIN4_VINCOM;
-    chan_map[2].setup_sel = 0;
-    chan_map[3].analog_inputs.analog_input_pairs = VIN5_VINCOM;
-    chan_map[3].setup_sel = 0;
-    chan_map[4].analog_inputs.analog_input_pairs = VIN6_VINCOM;
+    chan_map[4].analog_inputs.analog_input_pairs = VIN4_VINCOM;
     chan_map[4].setup_sel = 0;
-    chan_map[5].analog_inputs.analog_input_pairs = VIN7_VINCOM;
+    chan_map[5].analog_inputs.analog_input_pairs = VIN5_VINCOM;
     chan_map[5].setup_sel = 0;
+    chan_map[6].analog_inputs.analog_input_pairs = VIN6_VINCOM;
+    chan_map[6].setup_sel = 0;
+    chan_map[7].analog_inputs.analog_input_pairs = VIN7_VINCOM;
+    chan_map[7].setup_sel = 0;
 
 
     //curent sense for pressure transducers
-    chan_map[6].analog_inputs.analog_input_pairs = IIN0P_IIN0M;
-    chan_map[6].setup_sel = 1;
-    chan_map[7].analog_inputs.analog_input_pairs = IIN1P_IIN1M;
-    chan_map[7].setup_sel = 1;
-    chan_map[8].analog_inputs.analog_input_pairs = IIN2P_IIN2M;
+    chan_map[8].analog_inputs.analog_input_pairs = IIN0P_IIN0M;
     chan_map[8].setup_sel = 1;
-    chan_map[9].analog_inputs.analog_input_pairs = IIN3P_IIN3M;
+    chan_map[9].analog_inputs.analog_input_pairs = IIN1P_IIN1M;
     chan_map[9].setup_sel = 1;
+    chan_map[10].analog_inputs.analog_input_pairs = IIN2P_IIN2M;
+    chan_map[10].setup_sel = 1;
+    chan_map[11].analog_inputs.analog_input_pairs = IIN3P_IIN3M;
+    chan_map[11].setup_sel = 1;
 
 
     //setups
