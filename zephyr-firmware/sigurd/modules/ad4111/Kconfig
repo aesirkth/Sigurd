@@ -1,7 +1,0 @@
-config AD4111
-	bool "AD4111 ADC"
-	default y
-	depends on DT_HAS_ANALOG_AD4111_ENABLED
-	select SPI
-	help
-		Enable AD4111 ADC driver.

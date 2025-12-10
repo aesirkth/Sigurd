@@ -1,16 +1,15 @@
-cmake_minimum_required(VERSION 3.20.0)
+# Copyright (c) 2021 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+#
+# This CMake file is picked by the Zephyr build system because it is defined
+# as the module CMake entry point (see zephyr/module.yml).
 
-set(BOARD_ROOT ${CMAKE_CURRENT_LIST_DIR})
 
-list(APPEND ZEPHYR_EXTRA_MODULES
-    ${CMAKE_CURRENT_SOURCE_DIR}/modules/ad4111
-)
+# This is needed so that custom driver classes using system calls are taken into
+# account
+zephyr_syscall_include_directories(include)
 
-find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-project(sigurd)
+zephyr_include_directories(include)
 
-target_sources(app PRIVATE
-    src/main.c
-    src/sensors.c
-    src/can_com.c
-)
+add_subdirectory(drivers)
+add_subdirectory(lib)
