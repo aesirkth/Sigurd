@@ -19,45 +19,67 @@
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
-static const struct gpio_dt_spec tx_led = GPIO_DT_SPEC_GET(DT_NODELABEL(led0), gpios);
+//static const struct gpio_dt_spec tx_led = GPIO_DT_SPEC_GET(DT_NODELABEL(led0), gpios);
+//static const struct gpio_dt_spec rx_led = GPIO_DT_SPEC_GET(DT_NODELABEL(led1), gpios);
+static const struct gpio_dt_spec g_led = GPIO_DT_SPEC_GET(DT_NODELABEL(g), gpios);
+static const struct gpio_dt_spec r_led = GPIO_DT_SPEC_GET(DT_NODELABEL(r), gpios);
+
+bool test_led_flag = false;
+
+
+const struct can_filter test_filter = {
+    .flags = 0,
+    .id = 0x167,
+    .mask = 0b11111111111 
+};
 
 void can_rx_cb(const struct device *const device, struct can_frame *frame, void *user_data) {
 	// do something in here.
 	// but dont use k_msleep!
+
+	if (frame->dlc != 1) {
+        LOG_ERR("received packet with id %d has length %d. Sigurd expects all packets to have size 1.", frame->id, frame->dlc);
+    }
+
+	test_led_flag = true;
+
 }
-
-const struct can_filter filter = {
-    .flags = 0,
-    .id = 0x124,
-    .mask = 0b11111111111 
-};
-
 
 int main(void) {
-	initializePins();
-
-	// Uncomment these lines to enable can
-	// init_can();
-	// add_filter_can(can_rx_cb, filter, NULL);
-
-	while(true) {
-		gpio_pin_toggle_dt(&tx_led);
-	}
-
-	return 0;
-}
-
-int initializePins(void) {
 
 	int ret;
+	
+	if (!gpio_is_ready_dt(&g_led)) LOG_ERR("LED NOT READY");
 
-	if (!gpio_is_ready_dt(&tx_led))
-		LOG_ERR("LED NOT READY");
+	ret = gpio_pin_configure_dt(&g_led, GPIO_OUTPUT_ACTIVE);
+	
+	if (ret < 0) LOG_ERR("FAILED TO CONFIGURE LED");
+	
+
+	if (!gpio_is_ready_dt(&r_led)) LOG_ERR("LED NOT READY");
+
+	ret = gpio_pin_configure_dt(&g_led, GPIO_OUTPUT_ACTIVE);
+	if (ret < 0) LOG_ERR("FAILED TO CONFIGURE LED");
+
+
+	
+	init_can();
+	add_filter_can(can_rx_cb, test_filter, NULL);
+
+	while(true) {
+
+		if(test_led_flag) { 
+			gpio_pin_toggle_dt(&tx_led);
+			test_led_flag = false;
+		}
+
+		gpio_pin_toggle_dt(&g_led);
+		k_msleep(500);
+	
+		
+	}
+
+
+
 	return 0;
-
-	ret = gpio_pin_configure_dt(&tx_led, GPIO_OUTPUT_ACTIVE);
-	if (ret < 0)
-		LOG_ERR("FAILED TO CONFIGURE LED");
-	return 0;
-
 }

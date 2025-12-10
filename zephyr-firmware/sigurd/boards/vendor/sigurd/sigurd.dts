@@ -17,7 +17,7 @@
 		fdcan1 = &fdcan1;
 	};
 
-	//change pins here too
+
     leds {
         compatible = "gpio-leds";
         
@@ -25,6 +25,28 @@
 			gpios = <&gpioa 15 GPIO_ACTIVE_HIGH>;
 			label = "TX LED";
 		};
+
+		led1: led_1 {
+			gpios = <&gpiob 3 GPIO_ACTIVE_HIGH>;
+			label = "RX LED";
+		};
+    };
+
+	rgbleds {
+        compatible = "gpio-leds";
+        
+        g: green_led {
+			gpios = <&gpiob 15 GPIO_ACTIVE_HIGH>;
+			label = "green RGB LED";
+		};
+
+		r: red_led {
+			gpios = <&gpiob 13 GPIO_ACTIVE_HIGH>;
+			label = "green RGB LED";
+		};
+
+		
+
     };
 
 };

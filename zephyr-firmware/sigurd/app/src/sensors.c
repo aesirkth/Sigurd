@@ -8,7 +8,7 @@
 LOG_MODULE_REGISTER(sensors, LOG_LEVEL_INF);
 
 
-K_THREAD_DEFINE(sensors_tid, 4096, sensor_thread, NULL, NULL, NULL, 5, 0, 0);
+//K_THREAD_DEFINE(sensors_tid, 4096, sensor_thread, NULL, NULL, NULL, 5, 0, 0);
 //CAN thread
 //sensor thread
 
@@ -24,6 +24,11 @@ void sensor_thread(void) {
 
     LOG_INF("ext_adc1 ready");
 
+    //struct
+
+    // temperature sensor 1
+    // temp sensor ...
+    // pressure sensor ... 
 
     while (1) {
         int32_t adc_values[10];

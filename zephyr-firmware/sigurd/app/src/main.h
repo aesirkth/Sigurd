@@ -3,6 +3,9 @@
 
 #ifdef __cplusplus
 extern "C" {
+
+int initializePins(void);
+
 #endif
 
 #ifdef __cplusplus
