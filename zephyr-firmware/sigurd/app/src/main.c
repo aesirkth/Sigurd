@@ -15,8 +15,9 @@
 #include "main.h"
 #include "sensors.h"
 #include "can_com.h"
+#include "spitest.h"
 
-LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
 static const struct gpio_dt_spec tx_led = GPIO_DT_SPEC_GET(DT_NODELABEL(led0), gpios);
 //static const struct gpio_dt_spec rx_led = GPIO_DT_SPEC_GET(DT_NODELABEL(led1), gpios);
@@ -57,41 +58,27 @@ int main(void) {
 
 	if (!gpio_is_ready_dt(&r_led)) LOG_ERR("LED NOT READY");
 
-	ret = gpio_pin_configure_dt(&g_led, GPIO_OUTPUT_ACTIVE);
+	ret = gpio_pin_configure_dt(&r_led, GPIO_OUTPUT_ACTIVE);
 	if (ret < 0) LOG_ERR("FAILED TO CONFIGURE LED");
 
 
 	
-	init_can();
-	add_filter_can(can_rx_cb, test_filter, NULL);
+	// init_can();
+	// add_filter_can(can_rx_cb, test_filter, NULL);
 
-	init_sensors();
+	// init_sensors();
 
 	while(true) {
-
-		if(test_led_flag) { 
-			gpio_pin_toggle_dt(&tx_led);
-			test_led_flag = false;
+		// gpio_pin_toggle_dt(&r_led);
+		int x = runspitest();
+		if(x == 50) {
+			gpio_pin_toggle_dt(&g_led);
+		} else {
+			gpio_pin_toggle_dt(&r_led);
 		}
 
-		gpio_pin_toggle_dt(&g_led);
 
-
-		double pressure = get_pressure(0);
-		double pressure100 = 1000 * pressure;
-		// int32_t pressure100_int = (int32_t) pressure100;
-		int32_t pressure100_int = get_pressure_adc(0);
-
-		// int32_t pressure100_int = 0xAABBCCDD;
-		uint8_t data[4];
-		data[0] = (uint8_t)((pressure100_int >> 24) & 0xFF); 
-		data[1] = (uint8_t)((pressure100_int >> 16) & 0xFF); 
-		data[2] = (uint8_t)((pressure100_int >> 8) & 0xFF);
-		data[3] = (uint8_t)(pressure100_int & 0xFF);
-
-		submit_can_pkt(data, 4);
-
-		k_msleep(502);
+		k_msleep(1002);
 	}
 
 	// brown = VCC
