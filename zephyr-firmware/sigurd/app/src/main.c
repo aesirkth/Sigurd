@@ -24,6 +24,44 @@ static const struct gpio_dt_spec tx_led = GPIO_DT_SPEC_GET(DT_NODELABEL(led0), g
 static const struct gpio_dt_spec g_led = GPIO_DT_SPEC_GET(DT_NODELABEL(g), gpios);
 static const struct gpio_dt_spec r_led = GPIO_DT_SPEC_GET(DT_NODELABEL(r), gpios);
 
+
+
+// static const struct gpio_dt_spec miso_int = GPIO_DT_SPEC_GET(DT_NODELABEL(spiready1), gpios);
+static const struct gpio_dt_spec miso_spec = {
+	.port = DEVICE_DT_GET(DT_NODELABEL(gpioa)),
+	.pin = 6,
+	.dt_flags = GPIO_ACTIVE_HIGH
+};
+
+static struct gpio_callback miso_cb;
+
+int spi_adc_int_count = 0;
+
+void miso_interrupt_handler(const struct device *const device, struct gpio_callback *cb, uint32_t pins) {
+	printk("ADC data ready!\n");
+	spi_adc_int_count++;
+	// Handle ADC data ready
+}
+
+void setup_miso_interrupt(void) {
+    if (!device_is_ready(miso_spec.port)) {
+        printk("Error: MISO GPIO device not ready\n");
+        return;
+    }
+
+    int ret = gpio_pin_configure(miso_spec.port, miso_spec.pin, GPIO_INPUT);
+    if (ret < 0) {
+        printk("Error configuring MISO pin\n");
+        return;
+    }
+
+    gpio_init_callback(&miso_cb, miso_interrupt_handler, BIT(miso_spec.pin));
+    gpio_add_callback(miso_spec.port, &miso_cb);
+    gpio_pin_interrupt_configure(miso_spec.port, miso_spec.pin, GPIO_INT_EDGE_RISING);
+}
+
+
+
 bool test_led_flag = false;
 
 
@@ -61,22 +99,26 @@ int main(void) {
 	ret = gpio_pin_configure_dt(&r_led, GPIO_OUTPUT_ACTIVE);
 	if (ret < 0) LOG_ERR("FAILED TO CONFIGURE LED");
 
-
+	setup_miso_interrupt();
 	
 	// init_can();
 	// add_filter_can(can_rx_cb, test_filter, NULL);
 
 	// init_sensors();
-
+	
 	while(true) {
-		int x = runspitest();
 		// gpio_pin_toggle_dt(&r_led);
-		if(x == 50) {
+		// if(spi_adc_int_count > 0) {
+		// 	spi_adc_int_count = 0;
+		// 	int x = runspitest();
+		// 	gpio_pin_toggle_dt(&g_led);
+		// }
+		int y = gpio_pin_get_dt
+		if(y > 0) {
+			spi_adc_int_count = 0;
+			int x = runspitest();
 			gpio_pin_toggle_dt(&g_led);
-		} else {
-			// gpio_pin_toggle_dt(&r_led);
 		}
-
 
 		k_msleep(12);
 	}

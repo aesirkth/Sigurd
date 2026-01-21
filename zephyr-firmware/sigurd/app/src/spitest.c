@@ -24,7 +24,8 @@ int runspitest() {
         return 0;
     }
 
-    uint8_t tx_buffer[] = {0b01000111, 0, 0}; // this should be 0x44 maybe?
+    // uint8_t tx_buffer[] = {0b01000111, 0, 0}; // this should be 0x44 maybe?
+    uint8_t tx_buffer[] = {0x44, 0, 0};
     // loop
     // transcieve, timing between sending and recieving.
     // soft reset
