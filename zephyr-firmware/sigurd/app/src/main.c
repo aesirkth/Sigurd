@@ -69,16 +69,16 @@ int main(void) {
 	// init_sensors();
 
 	while(true) {
-		// gpio_pin_toggle_dt(&r_led);
 		int x = runspitest();
+		// gpio_pin_toggle_dt(&r_led);
 		if(x == 50) {
 			gpio_pin_toggle_dt(&g_led);
 		} else {
-			gpio_pin_toggle_dt(&r_led);
+			// gpio_pin_toggle_dt(&r_led);
 		}
 
 
-		k_msleep(1002);
+		k_msleep(12);
 	}
 
 	// brown = VCC
