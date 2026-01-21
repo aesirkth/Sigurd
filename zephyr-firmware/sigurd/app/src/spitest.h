@@ -7,6 +7,7 @@ extern "C" {
 
 
 int runspitest();
+void runsetupspi();
 
 
 

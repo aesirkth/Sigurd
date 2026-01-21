@@ -23,6 +23,7 @@ static const struct gpio_dt_spec tx_led = GPIO_DT_SPEC_GET(DT_NODELABEL(led0), g
 //static const struct gpio_dt_spec rx_led = GPIO_DT_SPEC_GET(DT_NODELABEL(led1), gpios);
 static const struct gpio_dt_spec g_led = GPIO_DT_SPEC_GET(DT_NODELABEL(g), gpios);
 static const struct gpio_dt_spec r_led = GPIO_DT_SPEC_GET(DT_NODELABEL(r), gpios);
+static const struct gpio_dt_spec chipselect = GPIO_DT_SPEC_GET(DT_NODELABEL(chipselect1), gpios);
 
 
 
@@ -57,7 +58,7 @@ void setup_miso_interrupt(void) {
 
     gpio_init_callback(&miso_cb, miso_interrupt_handler, BIT(miso_spec.pin));
     gpio_add_callback(miso_spec.port, &miso_cb);
-    gpio_pin_interrupt_configure(miso_spec.port, miso_spec.pin, GPIO_INT_EDGE_RISING);
+    gpio_pin_interrupt_configure(miso_spec.port, miso_spec.pin, GPIO_INT_EDGE_FALLING);
 }
 
 
@@ -90,16 +91,36 @@ int main(void) {
 	if (!gpio_is_ready_dt(&g_led)) LOG_ERR("LED NOT READY");
 
 	ret = gpio_pin_configure_dt(&g_led, GPIO_OUTPUT_ACTIVE);
-	
+	ret = gpio_pin_configure_dt(&tx_led, GPIO_OUTPUT_ACTIVE);
+
+	ret = gpio_pin_configure_dt(&chipselect, GPIO_OUTPUT_INACTIVE);
+
+	gpio_pin_set_dt(&chipselect, 1);
+
 	if (ret < 0) LOG_ERR("FAILED TO CONFIGURE LED");
 	
 
 	if (!gpio_is_ready_dt(&r_led)) LOG_ERR("LED NOT READY");
 
+
+	gpio_pin_toggle_dt(&g_led);
 	ret = gpio_pin_configure_dt(&r_led, GPIO_OUTPUT_ACTIVE);
 	if (ret < 0) LOG_ERR("FAILED TO CONFIGURE LED");
+	gpio_pin_toggle_dt(&g_led);
 
-	setup_miso_interrupt();
+	ret = gpio_pin_configure_dt(&miso_spec, GPIO_INPUT);
+	runsetupspi();
+
+	gpio_pin_toggle_dt(&g_led);
+	k_msleep(1020);
+	gpio_pin_toggle_dt(&g_led);
+	k_msleep(500);
+	gpio_pin_toggle_dt(&g_led);
+	k_msleep(250);
+	gpio_pin_toggle_dt(&g_led);
+	k_msleep(125);
+
+	// setup_miso_interrupt();
 	
 	// init_can();
 	// add_filter_can(can_rx_cb, test_filter, NULL);
@@ -113,14 +134,21 @@ int main(void) {
 		// 	int x = runspitest();
 		// 	gpio_pin_toggle_dt(&g_led);
 		// }
-		int y = gpio_pin_get_dt
-		if(y > 0) {
+		// gpio_pin_toggle_dt(&r_led);
+		int y = gpio_pin_get_dt(&miso_spec);
+		// if (spi_adc_int_count > 0) {
+		if (y == 0) {
 			spi_adc_int_count = 0;
 			int x = runspitest();
-			gpio_pin_toggle_dt(&g_led);
+			// int z = gpio_pin_get_dt(&miso_spec);
+			// gpio_pin_set_dt(&g_led, 1); // these are inverted for some reason
+			// gpio_pin_toggle_dt(&r_led);
+		} else {
+			// gpio_pin_set_dt(&g_led, 0);
 		}
 
-		k_msleep(12);
+		// k_msleep(1);
+		// k_usleep(1);
 	}
 
 	// brown = VCC
