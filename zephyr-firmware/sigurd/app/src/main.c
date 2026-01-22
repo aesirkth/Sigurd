@@ -11,6 +11,8 @@
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/kernel.h>
+#include <zephyr/drivers/pinctrl.h>
+// #include <zephyr/dt-bindings/pinctrl/stm32-pinctrl.h>
 
 #include "main.h"
 #include "sensors.h"
@@ -24,42 +26,43 @@ static const struct gpio_dt_spec tx_led = GPIO_DT_SPEC_GET(DT_NODELABEL(led0), g
 static const struct gpio_dt_spec g_led = GPIO_DT_SPEC_GET(DT_NODELABEL(g), gpios);
 static const struct gpio_dt_spec r_led = GPIO_DT_SPEC_GET(DT_NODELABEL(r), gpios);
 static const struct gpio_dt_spec chipselect = GPIO_DT_SPEC_GET(DT_NODELABEL(chipselect1), gpios);
+static const struct gpio_dt_spec miso_spec = GPIO_DT_SPEC_GET(DT_NODELABEL(spiadcready), gpios);
 
 
 
 // static const struct gpio_dt_spec miso_int = GPIO_DT_SPEC_GET(DT_NODELABEL(spiready1), gpios);
-static const struct gpio_dt_spec miso_spec = {
-	.port = DEVICE_DT_GET(DT_NODELABEL(gpioa)),
-	.pin = 6,
-	.dt_flags = GPIO_ACTIVE_HIGH
-};
+// static const struct gpio_dt_spec miso_spec = {
+// 	.port = DEVICE_DT_GET(DT_NODELABEL(gpioa)),
+// 	.pin = 6,
+// 	.dt_flags = GPIO_ACTIVE_HIGH
+// };
 
-static struct gpio_callback miso_cb;
+// static struct gpio_callback miso_cb;
 
-int spi_adc_int_count = 0;
+// int spi_adc_int_count = 0;
 
-void miso_interrupt_handler(const struct device *const device, struct gpio_callback *cb, uint32_t pins) {
-	printk("ADC data ready!\n");
-	spi_adc_int_count++;
-	// Handle ADC data ready
-}
+// void miso_interrupt_handler(const struct device *const device, struct gpio_callback *cb, uint32_t pins) {
+// 	printk("ADC data ready!\n");
+// 	spi_adc_int_count++;
+// 	// Handle ADC data ready
+// }
 
-void setup_miso_interrupt(void) {
-    if (!device_is_ready(miso_spec.port)) {
-        printk("Error: MISO GPIO device not ready\n");
-        return;
-    }
+// void setup_miso_interrupt(void) {
+//     if (!device_is_ready(miso_spec.port)) {
+//         printk("Error: MISO GPIO device not ready\n");
+//         return;
+//     }
 
-    int ret = gpio_pin_configure(miso_spec.port, miso_spec.pin, GPIO_INPUT);
-    if (ret < 0) {
-        printk("Error configuring MISO pin\n");
-        return;
-    }
+//     int ret = gpio_pin_configure(miso_spec.port, miso_spec.pin, GPIO_INPUT);
+//     if (ret < 0) {
+//         printk("Error configuring MISO pin\n");
+//         return;
+//     }
 
-    gpio_init_callback(&miso_cb, miso_interrupt_handler, BIT(miso_spec.pin));
-    gpio_add_callback(miso_spec.port, &miso_cb);
-    gpio_pin_interrupt_configure(miso_spec.port, miso_spec.pin, GPIO_INT_EDGE_FALLING);
-}
+//     gpio_init_callback(&miso_cb, miso_interrupt_handler, BIT(miso_spec.pin));
+//     gpio_add_callback(miso_spec.port, &miso_cb);
+//     gpio_pin_interrupt_configure(miso_spec.port, miso_spec.pin, GPIO_INT_EDGE_FALLING);
+// }
 
 
 
@@ -83,6 +86,7 @@ void can_rx_cb(const struct device *const device, struct can_frame *frame, void 
 	test_led_flag = true;
 
 }
+
 
 int main(void) {
 
@@ -126,8 +130,11 @@ int main(void) {
 	// add_filter_can(can_rx_cb, test_filter, NULL);
 
 	// init_sensors();
-	
+	int test_store = 42;	
+	int i = 0;
 	while(true) {
+		i++;
+
 		// gpio_pin_toggle_dt(&r_led);
 		// if(spi_adc_int_count > 0) {
 		// 	spi_adc_int_count = 0;
@@ -138,16 +145,27 @@ int main(void) {
 		int y = gpio_pin_get_dt(&miso_spec);
 		// if (spi_adc_int_count > 0) {
 		if (y == 0) {
-			spi_adc_int_count = 0;
+		// if (1) {
+			// spi_adc_int_count = 0;
 			int x = runspitest();
-			// int z = gpio_pin_get_dt(&miso_spec);
-			// gpio_pin_set_dt(&g_led, 1); // these are inverted for some reason
-			// gpio_pin_toggle_dt(&r_led);
-		} else {
-			// gpio_pin_set_dt(&g_led, 0);
-		}
+			if(x == 0xDE) {
+				gpio_pin_toggle_dt(&r_led);
+			}
+			if(x == 0x00) {
+				gpio_pin_toggle_dt(&tx_led);
+			}
+			if (x != 0x00) {
+				test_store = x;
+			}
+		} 
+		// if (i > 50) {
+		// 	gpio_pin_set_dt(&tx_led, test_store == 0 ? 0 : 1);
+		// 	gpio_pin_toggle_dt(&r_led);
+		// 	i = 0;
 
-		// k_msleep(1);
+		// }
+
+		// k_msleep(500);
 		// k_usleep(1);
 	}
 

@@ -1,5 +1,6 @@
 #include <zephyr/drivers/spi.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/drivers/pinctrl.h>
 
 LOG_MODULE_REGISTER(spitest, LOG_LEVEL_DBG);
 
@@ -10,15 +11,16 @@ LOG_MODULE_REGISTER(spitest, LOG_LEVEL_DBG);
 
 //https://academy.nordicsemi.com/courses/nrf-connect-sdk-intermediate/lessons/lesson-5-serial-peripheral-interface-spi/topic/zephyr-spi-api/
 
-// #define SPIOP SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL | SPI_MODE_CPHA 
-#define SPIOP SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL | SPI_MODE_CPHA | SPI_LOCK_ON
+#define SPIOP SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL | SPI_MODE_CPHA 
+// #define SPIOP SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL | SPI_MODE_CPHA | SPI_LOCK_ON
 // #define SPIOP SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL
 // #define SPIOP SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPHA
 // #define SPIOP SPI_WORD_SET(8) | SPI_TRANSFER_MSB
 struct spi_dt_spec spi = SPI_DT_SPEC_GET(DT_NODELABEL(ext_adc1), SPIOP);
 
 void runsetupspi() {
-    // spi = SPI_DT_SPEC_GET(DT_NODELABEL(ext_adc1), SPIOP);
+    // struct spi_dt_spec spi = SPI_DT_SPEC_GET(DT_NODELABEL(ext_adc1), SPIOP);
+    // pinctrl_apply_state(pcfg, PINCTRL_STATE_DEFAULT);
     uint8_t tx_buffer_init_buffer[] = {
         0xFF, 0xFF, 0xFF, 0xFF,
         0xFF, 0xFF, 0xFF, 0xFF,
@@ -31,7 +33,6 @@ void runsetupspi() {
 }
 
 int runspitest() {
-    // struct spi_dt_spec spi = SPI_DT_SPEC_GET(DT_NODELABEL(ext_adc1), SPIOP);
 
     int ret = spi_is_ready_dt(&spi);
     if (ret == 0) {
@@ -48,10 +49,9 @@ int runspitest() {
     struct spi_buf tx_spi_buf		= {.buf = (void *)tx_buffer, .len = 4};
     struct spi_buf_set tx_spi_buf_set 	= {.buffers = &tx_spi_buf, .count = 1};
 
-
-    uint8_t data[] = {25, 35, 45, 46};
-    struct spi_buf rx_spi_bufs 		= {.buf = (void *)data, .len = 4};
-    struct spi_buf_set rx_spi_buf_set	= {.buffers = &rx_spi_bufs, .count = 1};
+    uint8_t data[] = {0xFF, 0xFF, 0xFF, 0xFF};
+    struct spi_buf rx_spi_buf 		= {.buf = (void *)data, .len = 4};
+    struct spi_buf_set rx_spi_buf_set	= {.buffers = &rx_spi_buf, .count = 1};
 
     ret = spi_transceive_dt(&spi, &tx_spi_buf_set, &rx_spi_buf_set);
 
@@ -68,7 +68,7 @@ int runspitest() {
 
     // LOG_INF("%d", data);
 
-    return data[0];
+    return data[2];
 
 }
 	
