@@ -126,14 +126,14 @@ int main(void) {
 
 	// setup_miso_interrupt();
 	
-	// init_can();
+	init_can();
 	// add_filter_can(can_rx_cb, test_filter, NULL);
 
 	// init_sensors();
-	int test_store = 42;	
 	int i = 0;
 	while(true) {
 		i++;
+		/*
 
 		// gpio_pin_toggle_dt(&r_led);
 		// if(spi_adc_int_count > 0) {
@@ -147,25 +147,24 @@ int main(void) {
 		if (y == 0) {
 		// if (1) {
 			// spi_adc_int_count = 0;
-			int x = runspitest();
-			if(x == 0xDE) {
-				gpio_pin_toggle_dt(&r_led);
-			}
-			if(x == 0x00) {
+			uint8_t data[4];
+			runspitest(data);
+			if(data[3] != 0) {
 				gpio_pin_toggle_dt(&tx_led);
 			}
-			if (x != 0x00) {
-				test_store = x;
+			if(i > 5000) {
+			// if(i > 5000000) {
+				gpio_pin_toggle_dt(&r_led);
+				submit_can_pkt(data, 4);
+				i = 0;
 			}
+
 		} 
-		// if (i > 50) {
-		// 	gpio_pin_set_dt(&tx_led, test_store == 0 ? 0 : 1);
-		// 	gpio_pin_toggle_dt(&r_led);
-		// 	i = 0;
 
-		// }
-
-		// k_msleep(500);
+		*/
+		k_msleep(100);
+		uint8_t testing[]={0xAA,0xBB};
+		submit_can_pkt(testing, 2);
 		// k_usleep(1);
 	}
 

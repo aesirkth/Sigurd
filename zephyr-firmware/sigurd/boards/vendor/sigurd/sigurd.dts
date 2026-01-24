@@ -17,7 +17,6 @@
 	aliases {
 		xadc1 = &ext_adc1;
 		fdcan1 = &fdcan1;
-		spimisoready = &spi1_miso_pa6;
 	};
 
 
@@ -29,8 +28,8 @@
 			label = "TX LED";
 		};
 
-        spiready1: spiready1 {
-			gpios = <&gpioa 6 GPIO_ACTIVE_HIGH>;
+        spiadcready: spiadcready {
+			gpios = <&gpiob 1 GPIO_ACTIVE_HIGH>;
 			label = "SPI ready 1";
 		};
 
