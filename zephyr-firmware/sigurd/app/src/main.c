@@ -18,6 +18,7 @@
 #include "sensors.h"
 #include "can_com.h"
 #include "spitest.h"
+#include "ad4111.h"
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
@@ -29,45 +30,94 @@ static const struct gpio_dt_spec chipselect = GPIO_DT_SPEC_GET(DT_NODELABEL(chip
 static const struct gpio_dt_spec miso_spec = GPIO_DT_SPEC_GET(DT_NODELABEL(spiadcready), gpios);
 
 
-
-// static const struct gpio_dt_spec miso_int = GPIO_DT_SPEC_GET(DT_NODELABEL(spiready1), gpios);
-// static const struct gpio_dt_spec miso_spec = {
-// 	.port = DEVICE_DT_GET(DT_NODELABEL(gpioa)),
-// 	.pin = 6,
-// 	.dt_flags = GPIO_ACTIVE_HIGH
-// };
-
-// static struct gpio_callback miso_cb;
-
-// int spi_adc_int_count = 0;
-
-// void miso_interrupt_handler(const struct device *const device, struct gpio_callback *cb, uint32_t pins) {
-// 	printk("ADC data ready!\n");
-// 	spi_adc_int_count++;
-// 	// Handle ADC data ready
-// }
-
-// void setup_miso_interrupt(void) {
-//     if (!device_is_ready(miso_spec.port)) {
-//         printk("Error: MISO GPIO device not ready\n");
-//         return;
-//     }
-
-//     int ret = gpio_pin_configure(miso_spec.port, miso_spec.pin, GPIO_INPUT);
-//     if (ret < 0) {
-//         printk("Error configuring MISO pin\n");
-//         return;
-//     }
-
-//     gpio_init_callback(&miso_cb, miso_interrupt_handler, BIT(miso_spec.pin));
-//     gpio_add_callback(miso_spec.port, &miso_cb);
-//     gpio_pin_interrupt_configure(miso_spec.port, miso_spec.pin, GPIO_INT_EDGE_FALLING);
-// }
+static struct gpio_callback miso_cb;
 
 
+
+
+//according to ad4111 faq, and datasheet this is the following way to configure:
+//reset
+//check ID
+//configure ADC mode (not sure before or after which config) - I have not written a function for this!
+//first configure channel (check channel registers on datasheet)
+//then configure setup
+//then configure filter
+//done
+
+//ad4111.h, a new header file i wrote contains helpful enums and structs
+
+
+
+
+void adc_setup() { 
+
+	//there are 15 channel numbers, note these are not the physical pins! Its an internal thing on the ADC, 
+	ad4111_channel_t channel0;
+	channel0.ch_id = CH0;
+	channel0.ch_en = 1;
+	channel0.setup_sel = 0;
+	channel0.input = VIN0_VINCOM;
+
+
+	//use this for voltage measurements, multiple channels can use the same setup
+	ad4111_setup_t setup0;
+	setup0.setup_id 	= SETUP_CFG0;
+	setup0.bi_unipolar	= UNIPOLAR;
+	setup0.refbuf_plus 	= 1;
+	setup0.refbuf_minus = 1;
+	setup0.inbuf		= AD4111_INBUF_DISABLED;
+	setup0.ref_sel 		= INTERNAL_REF;
+
+
+	/* 
+	use this for current measurements
+	
+	ad4111_setup_t setup1;
+	setup1.setup_id = 	...
+	setup0.bi_unipolar	= UNIPOLAR;
+	setup0.refbuf_plus 	= 0;
+	setup0.refbuf_minus = 0;
+	setup0.ref_sel 		= INTERNAL_REF;
+
+*/
+
+// filter(x) corresponds to setup(x)
+// e.g. filter0 to setup0
+ad4111_filter_t filter0;
+filter0.filter_id 	= FILTER_CFG0;
+filter0.enhfilten 	= AD4111_ENHFILT_DISABLED;
+filter0.enhfilt 	= AD4111_ENHFILT_27SPS_47DB;
+filter0.order 		= AD4111_FILTER_SINC5_SINC1;
+filter0.odr 		= AD4111_ODR_200_SPS;
+
+
+}
+
+
+
+int spi_adc_int_count = 0;
+
+void miso_interrupt_handler(const struct device *const device, struct gpio_callback *cb, uint32_t pins) {
+	spi_adc_int_count++;
+	// Handle ADC data ready
+}
+
+void setup_miso_interrupt(void) {
+		if (!device_is_ready(miso_spec.port)) {
+			return;
+		}
+
+		int ret = gpio_pin_configure(miso_spec.port, miso_spec.pin, GPIO_INPUT);
+		if (ret < 0) {
+			return;
+		}
+
+		gpio_init_callback(&miso_cb, miso_interrupt_handler, BIT(miso_spec.pin));
+		gpio_add_callback(miso_spec.port, &miso_cb);
+		gpio_pin_interrupt_configure(miso_spec.port, miso_spec.pin, GPIO_INT_EDGE_FALLING);
+}
 
 bool test_led_flag = false;
-
 
 const struct can_filter test_filter = {
     .flags = 0,
@@ -87,6 +137,40 @@ void can_rx_cb(const struct device *const device, struct can_frame *frame, void 
 
 }
 
+void initialize_pins(void) { 
+	
+	int ret;
+
+	if (!gpio_is_ready_dt(&g_led) || !gpio_is_ready_dt(&r_led)) { 
+		LOG_ERR("LED NOT READY");
+	}
+
+	ret = gpio_pin_configure_dt(&g_led, GPIO_OUTPUT_ACTIVE);
+	ret = gpio_pin_configure_dt(&tx_led, GPIO_OUTPUT_ACTIVE);
+	ret = gpio_pin_configure_dt(&r_led, GPIO_OUTPUT_ACTIVE);
+
+	if (ret < 0)  { 
+		LOG_ERR("FAILED TO CONFIGURE LED");
+	}
+
+	// SPI pins
+	ret = gpio_pin_configure_dt(&chipselect, GPIO_OUTPUT_INACTIVE);
+	ret = gpio_pin_configure_dt(&miso_spec, GPIO_INPUT);
+
+}
+
+void flash_led(void) { 
+	
+	gpio_pin_toggle_dt(&g_led);
+	k_msleep(400);
+	gpio_pin_toggle_dt(&g_led);
+	k_msleep(300);
+	gpio_pin_toggle_dt(&g_led);
+	k_msleep(200);
+	gpio_pin_toggle_dt(&g_led);
+	k_msleep(100);
+
+}
 
 int main(void) {
 
@@ -115,25 +199,18 @@ int main(void) {
 	ret = gpio_pin_configure_dt(&miso_spec, GPIO_INPUT);
 	runsetupspi();
 
-	gpio_pin_toggle_dt(&g_led);
-	k_msleep(1020);
-	gpio_pin_toggle_dt(&g_led);
-	k_msleep(500);
-	gpio_pin_toggle_dt(&g_led);
-	k_msleep(250);
-	gpio_pin_toggle_dt(&g_led);
-	k_msleep(125);
+	flash_led();
 
 	// setup_miso_interrupt();
 	
-	// init_can();
+	init_can();
 	// add_filter_can(can_rx_cb, test_filter, NULL);
 
 	// init_sensors();
-	int test_store = 42;	
 	int i = 0;
 	while(true) {
 		i++;
+		/*
 
 		// gpio_pin_toggle_dt(&r_led);
 		// if(spi_adc_int_count > 0) {
@@ -147,25 +224,24 @@ int main(void) {
 		if (y == 0) {
 		// if (1) {
 			// spi_adc_int_count = 0;
-			int x = runspitest();
-			if(x == 0xDE) {
-				gpio_pin_toggle_dt(&r_led);
-			}
-			if(x == 0x00) {
+			uint8_t data[4];
+			runspitest(data);
+			if(data[3] != 0) {
 				gpio_pin_toggle_dt(&tx_led);
 			}
-			if (x != 0x00) {
-				test_store = x;
+			if(i > 5000) {
+			// if(i > 5000000) {
+				gpio_pin_toggle_dt(&r_led);
+				submit_can_pkt(data, 4);
+				i = 0;
 			}
+
 		} 
-		// if (i > 50) {
-		// 	gpio_pin_set_dt(&tx_led, test_store == 0 ? 0 : 1);
-		// 	gpio_pin_toggle_dt(&r_led);
-		// 	i = 0;
 
-		// }
-
-		// k_msleep(500);
+		*/
+		k_msleep(100);
+		uint8_t testing[]={0xAA,0xBB};
+		submit_can_pkt(testing, 2);
 		// k_usleep(1);
 	}
 
