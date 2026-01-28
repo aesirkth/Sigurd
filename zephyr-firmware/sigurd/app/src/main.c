@@ -120,45 +120,9 @@ void can_rx_cb(const struct device *const device, struct can_frame *frame, void 
 
 }
 
-void initialize_pins(void) { 
-	
+int initialize_pins(void) { 
 	int ret;
 
-	if (!gpio_is_ready_dt(&g_led) || !gpio_is_ready_dt(&r_led)) { 
-		LOG_ERR("LED NOT READY");
-	}
-
-	ret = gpio_pin_configure_dt(&g_led, GPIO_OUTPUT_ACTIVE);
-	ret = gpio_pin_configure_dt(&tx_led, GPIO_OUTPUT_ACTIVE);
-	ret = gpio_pin_configure_dt(&r_led, GPIO_OUTPUT_ACTIVE);
-
-	if (ret < 0)  { 
-		LOG_ERR("FAILED TO CONFIGURE LED");
-	}
-
-	// SPI pins
-	ret = gpio_pin_configure_dt(&chipselect, GPIO_OUTPUT_INACTIVE);
-	ret = gpio_pin_configure_dt(&miso_spec, GPIO_INPUT);
-
-}
-
-void flash_led(void) { 
-	
-	gpio_pin_toggle_dt(&g_led);
-	k_msleep(400);
-	gpio_pin_toggle_dt(&g_led);
-	k_msleep(300);
-	gpio_pin_toggle_dt(&g_led);
-	k_msleep(200);
-	gpio_pin_toggle_dt(&g_led);
-	k_msleep(100);
-
-}
-
-int main(void) {
-
-	int ret;
-	
 	if (!gpio_is_ready_dt(&g_led)) LOG_ERR("LED NOT READY");
 
 	ret = gpio_pin_configure_dt(&g_led, GPIO_OUTPUT_ACTIVE);
@@ -178,18 +142,23 @@ int main(void) {
 	ret = gpio_pin_configure_dt(&r_led, GPIO_OUTPUT_ACTIVE);
 	if (ret < 0) LOG_ERR("FAILED TO CONFIGURE LED");
 	gpio_pin_toggle_dt(&g_led);
+	return ret;
+}
+
+int initialize_interrupt() {
+	int ret;
 
 	if (!gpio_is_ready_dt(&miso_spec)) {
-		printk("Error: button device %s is not ready\n",
+		LOG_ERR("Error: button device %s is not ready\n",
 		       miso_spec.port->name);
-		return 0;
+		return 1;
 	}
 
 	ret = gpio_pin_configure_dt(&miso_spec, GPIO_INPUT);
 	if (ret != 0) {
 		printk("Error %d: failed to configure %s pin %d\n",
 		       ret, miso_spec.port->name, miso_spec.pin);
-		return 0;
+		return 1;
 	}
 
 	// ret = gpio_pin_configure_dt(&miso_spec, GPIO_INPUT);
@@ -197,16 +166,43 @@ int main(void) {
 	if (ret != 0) {
 		printk("Error %d: failed to configure interrupt on %s pin %d\n",
 			ret, miso_spec.port->name, miso_spec.pin);
-		return 0;
+		return 1;
 	}
 	gpio_init_callback(&miso_cb_data, miso_interrupt_handler, BIT(miso_spec.pin));
 	gpio_add_callback(miso_spec.port, &miso_cb_data);
+}
 
+void flash_led(void) { 
+	
+	gpio_pin_toggle_dt(&g_led);
+	k_msleep(400);
+	gpio_pin_toggle_dt(&g_led);
+	k_msleep(300);
+	gpio_pin_toggle_dt(&g_led);
+	k_msleep(200);
+	gpio_pin_toggle_dt(&g_led);
+	k_msleep(100);
+
+}
+
+int main(void) {
+
+	int ret;
+	ret = initialize_pins();
+	if (ret != 0) {
+		LOG_ERR("FAILED TO CONFIGURE PINS");
+		return 0;
+	}
+	ret = initialize_interrupt();
+	if (ret != 0) {
+		LOG_ERR("FAILED TO CONFIGURE INTERRUPT");
+		return 0;
+	}
+	
 	runsetupspi();
 
-	// flash_led();
+	flash_led();
 
-	// setup_miso_interrupt();
 	
 	// init_can();
 	// add_filter_can(can_rx_cb, test_filter, NULL);
@@ -258,10 +254,10 @@ int main(void) {
 
 		} 
 
-		k_msleep(1);
+		k_msleep(10);
 		// uint8_t testing[]={0xAA,0xBB};
 		// submit_can_pkt(testing, 2);
-		// k_usleep(800);
+		// k_usleep(100);
 	}
 
 	// brown = VCC
