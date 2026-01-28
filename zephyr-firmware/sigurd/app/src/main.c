@@ -30,9 +30,7 @@ static const struct gpio_dt_spec chipselect = GPIO_DT_SPEC_GET(DT_NODELABEL(chip
 static const struct gpio_dt_spec miso_spec = GPIO_DT_SPEC_GET(DT_NODELABEL(spiadcready), gpios);
 
 
-static struct gpio_callback miso_cb;
-
-
+static struct gpio_callback miso_cb_data;
 
 
 //according to ad4111 faq, and datasheet this is the following way to configure:
@@ -97,24 +95,9 @@ filter0.odr 		= AD4111_ODR_200_SPS;
 
 int spi_adc_int_count = 0;
 
-void miso_interrupt_handler(const struct device *const device, struct gpio_callback *cb, uint32_t pins) {
+void miso_interrupt_handler(const struct device *dev, struct gpio_callback *cb,
+		    uint32_t pins) {
 	spi_adc_int_count++;
-	// Handle ADC data ready
-}
-
-void setup_miso_interrupt(void) {
-		if (!device_is_ready(miso_spec.port)) {
-			return;
-		}
-
-		int ret = gpio_pin_configure(miso_spec.port, miso_spec.pin, GPIO_INPUT);
-		if (ret < 0) {
-			return;
-		}
-
-		gpio_init_callback(&miso_cb, miso_interrupt_handler, BIT(miso_spec.pin));
-		gpio_add_callback(miso_spec.port, &miso_cb);
-		gpio_pin_interrupt_configure(miso_spec.port, miso_spec.pin, GPIO_INT_EDGE_FALLING);
 }
 
 bool test_led_flag = false;
@@ -196,21 +179,42 @@ int main(void) {
 	if (ret < 0) LOG_ERR("FAILED TO CONFIGURE LED");
 	gpio_pin_toggle_dt(&g_led);
 
+	if (!gpio_is_ready_dt(&miso_spec)) {
+		printk("Error: button device %s is not ready\n",
+		       miso_spec.port->name);
+		return 0;
+	}
+
 	ret = gpio_pin_configure_dt(&miso_spec, GPIO_INPUT);
+	if (ret != 0) {
+		printk("Error %d: failed to configure %s pin %d\n",
+		       ret, miso_spec.port->name, miso_spec.pin);
+		return 0;
+	}
+
+	// ret = gpio_pin_configure_dt(&miso_spec, GPIO_INPUT);
+	ret = gpio_pin_interrupt_configure_dt(&miso_spec, GPIO_INT_EDGE_TO_INACTIVE);
+	if (ret != 0) {
+		printk("Error %d: failed to configure interrupt on %s pin %d\n",
+			ret, miso_spec.port->name, miso_spec.pin);
+		return 0;
+	}
+	gpio_init_callback(&miso_cb_data, miso_interrupt_handler, BIT(miso_spec.pin));
+	gpio_add_callback(miso_spec.port, &miso_cb_data);
+
 	runsetupspi();
 
-	flash_led();
+	// flash_led();
 
 	// setup_miso_interrupt();
 	
-	init_can();
+	// init_can();
 	// add_filter_can(can_rx_cb, test_filter, NULL);
 
 	// init_sensors();
 	int i = 0;
 	while(true) {
 		i++;
-		/*
 
 		// gpio_pin_toggle_dt(&r_led);
 		// if(spi_adc_int_count > 0) {
@@ -219,30 +223,45 @@ int main(void) {
 		// 	gpio_pin_toggle_dt(&g_led);
 		// }
 		// gpio_pin_toggle_dt(&r_led);
-		int y = gpio_pin_get_dt(&miso_spec);
-		// if (spi_adc_int_count > 0) {
-		if (y == 0) {
+		// int y = gpio_pin_get_dt(&miso_spec);
+		if (spi_adc_int_count > 0) {
+			spi_adc_int_count = 0;
+			gpio_pin_toggle_dt(&r_led);
+		// if (y == 0) {
 		// if (1) {
 			// spi_adc_int_count = 0;
 			uint8_t data[4];
+
+			ret = gpio_pin_interrupt_configure_dt(&miso_spec, GPIO_INT_DISABLE);
+			if (ret != 0) {
+				printk("Error %d: failed to configure interrupt on %s pin %d\n",
+					ret, miso_spec.port->name, miso_spec.pin);
+				return 0;
+			}
+
 			runspitest(data);
+
+			ret = gpio_pin_interrupt_configure_dt(&miso_spec, GPIO_INT_EDGE_TO_INACTIVE);
+			if (ret != 0) {
+				printk("Error %d: failed to configure interrupt on %s pin %d\n",
+					ret, miso_spec.port->name, miso_spec.pin);
+				return 0;
+			}
 			if(data[3] != 0) {
 				gpio_pin_toggle_dt(&tx_led);
 			}
-			if(i > 5000) {
+			if(i > 0) {
 			// if(i > 5000000) {
-				gpio_pin_toggle_dt(&r_led);
-				submit_can_pkt(data, 4);
+				// submit_can_pkt(data, 4);
 				i = 0;
 			}
 
 		} 
 
-		*/
-		k_msleep(100);
-		uint8_t testing[]={0xAA,0xBB};
-		submit_can_pkt(testing, 2);
-		// k_usleep(1);
+		k_msleep(1);
+		// uint8_t testing[]={0xAA,0xBB};
+		// submit_can_pkt(testing, 2);
+		// k_usleep(800);
 	}
 
 	// brown = VCC

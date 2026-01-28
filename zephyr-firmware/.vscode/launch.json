@@ -1,34 +1,34 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launch",
-            "type": "cppdbg",
+            "name": "Debug Zephyr (PyOCD)",
+            "cwd": "${workspaceFolder}",
+            "executable": "/Volumes/external/aesir/Sigurd2/zephyr-firmware/sigurd/build/zephyr/zephyr.elf",
             "request": "launch",
-            "program": " ${workspaceFolder}/fafnir/build/zephyr/zephyr.exe",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${fileDirname}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "Set Disassembly Flavor to Intel",
-                    "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
-                }
-            ]
-        }
-        
+            "type": "cortex-debug",
+            "gdbPath": "/Volumes/external/zephyrproject/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+            
+            // --- PyOCD Specific Configuration ---
+            "servertype": "pyocd",
+            "device": "stm32u575zitx", // Matches the --target argument in your west config
+            "serverArgs": [
+                "--target",
+                "stm32u575zitx"
+            ],
+            
+            // PyOCD GDB server typically defaults to port 3333
+            "gdbTarget": "localhost:5000", 
 
+            // Zephyr Specific RTOS Settings (Highly Recommended)
+            // "rtos": "Zephyr",
+            
+            // --- Execution Flow ---
+            // "runToEntryPoint": "main",
+            // "svdFile": "/path/to/STM32U575ZI.svd", // Highly recommended for peripheral views
+            
+            // Optional: Controls log verbosity
+            "showDevDebugOutput": "raw" 
+        }
     ]
 }

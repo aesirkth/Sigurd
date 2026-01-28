@@ -29,10 +29,6 @@
 			label = "TX LED";
 		};
 
-        spiadcready: spiadcready {
-			gpios = <&gpiob 1 GPIO_ACTIVE_HIGH>;
-			label = "spi adc ready";
-		};
 
         chipselect1: chipselect1 {
 			gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
@@ -45,6 +41,15 @@
 		};
 
     };
+
+	buttons {
+		compatible = "gpio-keys";
+        spiadcready: spiadcready {
+			gpios = <&gpiob 1 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+			label = "spi adc ready";
+			zephyr,code = <INPUT_KEY_0>;
+		};
+	};
 
 	rgbleds {
         compatible = "gpio-leds";

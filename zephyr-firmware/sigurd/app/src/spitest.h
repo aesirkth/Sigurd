@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 
-int runspitest();
+int runspitest(uint8_t *rx_buffer);
 void runsetupspi();
 
 

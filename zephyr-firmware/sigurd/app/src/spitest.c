@@ -23,7 +23,10 @@ void runsetupspi() {
     spi_write_dt(&spi, &tx_init_spi_buf_set);
 }
 
-int runspitest() {
+/**
+ * @param rx_buffer Needs to be length 4.
+ */
+int runspitest(uint8_t *rx_buffer) {
 
     int ret = spi_is_ready_dt(&spi);
     if (ret == 0) {
@@ -37,19 +40,20 @@ int runspitest() {
     // transcieve, timing between sending and recieving.
     // soft reset
 
-    struct spi_buf tx_spi_buf		    = {.buf = (void *)tx_buffer, .len = 4};
+    struct spi_buf tx_spi_buf		= {.buf = (void *)tx_buffer, .len = 4};
     struct spi_buf_set tx_spi_buf_set 	= {.buffers = &tx_spi_buf, .count = 1};
 
-    uint8_t data[] = {0xFF, 0xFF, 0xFF, 0xFF};
-    struct spi_buf rx_spi_buf 		    = {.buf = (void *)data, .len = 4};
+    // uint8_t data[] = {0xFF, 0xFF, 0xFF, 0xFF};
+    struct spi_buf rx_spi_buf 		= {.buf = (void *)rx_buffer, .len = 4};
     struct spi_buf_set rx_spi_buf_set	= {.buffers = &rx_spi_buf, .count = 1};
 
     ret = spi_transceive_dt(&spi, &tx_spi_buf_set, &rx_spi_buf_set);
 
     if (ret!=0) { 
         LOG_ERR("ERROR: SPI DEVICE sucks");
-        return 0;
+        return 1;
     }
+    return 0;
 
     // ret = spi_read_dt(&spi, &rx_spi_buf_set);
     // if (ret!=0) { 
@@ -59,7 +63,7 @@ int runspitest() {
 
     // LOG_INF("%d", data);
 
-    return data[2];
+    // return data[2];
 
 }
 
