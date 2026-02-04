@@ -354,10 +354,12 @@ int ad4111_set_ifmode(void) {
 	return ad4111_write_reg(AD4111_IFMODE_REG, tx_buffer, 2);
 }
 
-volatile int spi_adc_int_count = 0;
+// volatile int spi_adc_int_count = 0;
+K_SEM_DEFINE(adc_data_ready, 0, 1);
 void miso_interrupt_handler(const struct device *dev, struct gpio_callback *cb,
 		    uint32_t pins) {
-	spi_adc_int_count++;
+	// spi_adc_int_count++;
+	k_sem_give(&adc_data_ready);
 }
 
 volatile int ad4111_working = 0;
@@ -419,9 +421,12 @@ void ad4111_thread_fn(void) {
     while (true) {
 		// int not_ready = gpio_pin_get_dt(&miso_spec);
 		// if(!not_ready) {
-		if(spi_adc_int_count > 0) {
+		// if(spi_adc_int_count > 0) {
+		if (k_sem_take(&adc_data_ready, K_MSEC(50)) != 0) {
+			ad4111_working = 0;	
+		} else {
 			ad4111_working = 1;
-			spi_adc_int_count = 0;	
+			// spi_adc_int_count = 0;	
 
 			// Disable interrupt while reading data.
 
@@ -435,7 +440,7 @@ void ad4111_thread_fn(void) {
 			if (ret != 0) break;
 			
 		}
-		k_msleep(1);
+		// k_msleep(1);
 		// k_usleep(1);
     }
 	ad4111_working = 0;
