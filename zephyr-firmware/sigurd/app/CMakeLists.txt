@@ -16,5 +16,6 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(app LANGUAGES C)
 
-target_sources(app PRIVATE src/main.c  src/can_com.c src/spitest.c)
+target_sources(app PRIVATE src/main.c  src/can_com.c src/ad4111.c)
+# target_sources(app PRIVATE src/main.c  src/can_com.c src/spitest.c src/ad4111.c)
 # src/sensors.c

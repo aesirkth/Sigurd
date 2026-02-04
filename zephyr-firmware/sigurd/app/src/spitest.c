@@ -122,7 +122,6 @@ void ad4111_channel(ad4111_channel_t* channel) {
     chan_reg |= (channel->setup_sel & 0x7)  << 12;
     chan_reg |= (channel->input & 0x3FF);
 
-
     uint8_t tx_buffer[3] = {comms, (chan_reg >> 8) & 0xFF, chan_reg & 0xFF}; // read from ID register
 
 
