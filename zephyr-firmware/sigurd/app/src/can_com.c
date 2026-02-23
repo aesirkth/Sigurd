@@ -24,10 +24,10 @@ void can_tx_cb(const struct device *device, int error, void *user_data) {
     }
 }
 
-int submit_can_pkt(const void *packet, size_t length) {
+int submit_can_pkt(uint8_t id, const void *packet, size_t length) {
     struct can_frame frame = {
             .flags = 0,
-            .id = 0x123,
+            .id = id,
             .dlc = length,
     };
     memcpy(frame.data, packet, length);

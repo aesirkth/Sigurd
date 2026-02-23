@@ -1,7 +1,8 @@
-#include "ad4111.h"
+#include "can_com.h"
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/spi.h>
 #include <zephyr/logging/log.h>
+#include <assert.h>
 
 LOG_MODULE_REGISTER(ADC_AD4111, LOG_LEVEL_DBG);
 
@@ -181,6 +182,25 @@ typedef struct {
 struct spi_dt_spec spi = SPI_DT_SPEC_GET(DT_NODELABEL(ext_adc1), SPIOP);
 
 
+// volatile int spi_adc_int_count = 0;
+K_SEM_DEFINE(adc_data_ready, 0, 1);
+void miso_interrupt_handler(const struct device *dev, struct gpio_callback *cb,
+							uint32_t pins) {
+	k_sem_give(&adc_data_ready);
+}
+
+volatile int ad4111_status = 0;
+
+struct adc_result {
+    uint8_t data[3];
+    uint8_t status;
+};
+
+K_MSGQ_DEFINE(adc_results, sizeof(struct adc_result), 30, 1);
+
+static const struct gpio_dt_spec miso_spec = GPIO_DT_SPEC_GET(DT_NODELABEL(spiadcready), gpios);
+static struct gpio_callback miso_cb_data;
+
 static int ad4111_read_reg(ad4111_reg_t reg_addr, uint8_t *buffer,
 			   size_t reg_size) {
 	int ret;
@@ -354,20 +374,6 @@ int ad4111_set_ifmode(void) {
 	return ad4111_write_reg(AD4111_IFMODE_REG, tx_buffer, 2);
 }
 
-// volatile int spi_adc_int_count = 0;
-K_SEM_DEFINE(adc_data_ready, 0, 1);
-void miso_interrupt_handler(const struct device *dev, struct gpio_callback *cb,
-		    uint32_t pins) {
-	// spi_adc_int_count++;
-	k_sem_give(&adc_data_ready);
-}
-
-volatile int ad4111_working = 0;
-uint8_t data[4];
-
-static const struct gpio_dt_spec miso_spec = GPIO_DT_SPEC_GET(DT_NODELABEL(spiadcready), gpios);
-static struct gpio_callback miso_cb_data;
-
 int initialize_interrupt() {
 	int ret;
 
@@ -413,54 +419,75 @@ int initialize_gpio_miso() {
 	return 0;
 }
 
-
 void ad4111_thread_fn(void) {
     int ret;
 
-	ad4111_working = 0;
+	ad4111_status = 0;
     while (true) {
 		// int not_ready = gpio_pin_get_dt(&miso_spec);
 		// if(!not_ready) {
 		// if(spi_adc_int_count > 0) {
 		if (k_sem_take(&adc_data_ready, K_MSEC(50)) != 0) {
-			ad4111_working = 0;	
-		} else {
-			ad4111_working = 1;
-			// spi_adc_int_count = 0;	
-
-			// Disable interrupt while reading data.
-
-			ret = gpio_pin_interrupt_configure_dt(&miso_spec, GPIO_INT_DISABLE);
-			if (ret != 0) break;
-
-			ret = ad4111_read_reg(AD4111_DATA_REG, data, 4);
-			if (ret != 0) break;
-
-			ret = gpio_pin_interrupt_configure_dt(&miso_spec, GPIO_INT_EDGE_TO_INACTIVE);
-			if (ret != 0) break;
-			
+			ad4111_status = 0;
+			continue;
 		}
-		// k_msleep(1);
-		// k_usleep(1);
+
+		ad4111_status = 1;
+
+		// Disable interrupt while reading data.
+		ret = gpio_pin_interrupt_configure_dt(&miso_spec, GPIO_INT_DISABLE);
+		if (ret != 0) break;
+
+		uint8_t data[4];
+		ret = ad4111_read_reg(AD4111_DATA_REG, data, 4);
+		if (ret != 0) break;
+
+		ret = gpio_pin_interrupt_configure_dt(&miso_spec, GPIO_INT_EDGE_TO_INACTIVE);
+		if (ret != 0) break;
+
+		struct adc_result conversion = {
+			.data[0] = data[0],
+			.data[1] = data[1],
+			.data[2] = data[2],
+			.status = data[3]
+		};
+
+		ret = conversion.status & 0xF0;
+		if (ret != 0) {
+			ad4111_status = 0;
+			continue;
+		}
+
+		ret = k_msgq_put(&adc_results, &conversion, K_NO_WAIT);
+		if (ret < 0) {
+			ad4111_status = 0;
+			continue;
+		}
     }
-	ad4111_working = 0;
+	ad4111_status = 0;
 }
 
-uint8_t *ad4111_get_data(void) {
-	return data;
+int ad4111_get_data_blocking(uint32_t *code) {
+	struct adc_result conversion;
+	int ret = k_msgq_get(&adc_results, &conversion, K_MSEC(500));
+	if (ret < 0) {
+		return ret;
+	}
+	uint8_t *data = conversion.data;
+	*code = ((int32_t)data[0] << 16) | ((int32_t)data[1] << 8) | data[2];
+	assert((conversion.status & 0xF0) == 0);
+	return conversion.status; 
 }
 
-int ad4111_is_running(void) {
-	return ad4111_working;
+int ad4111_get_status(void) {
+	return ad4111_status;
 }
-
-
 
 K_THREAD_DEFINE(ad4111_thread,
                 1024,
                 ad4111_thread_fn,
                 NULL, NULL, NULL,
-                5, // low-ish priority because it never yields
+                5,
                 0,
                 -1); // do not start
 
@@ -485,6 +512,7 @@ int ad4111_init(void) {
 	// Configuration for Sigurd
 	// TODO: One day, someone could look into making this configurable
 	//       via devicetree. Today, we are not the ones to do it.
+	//       -> yeah, me neither. Good luck to the next person!
 
 	ret = ad4111_set_adcmode();
 	if(ret != 0) return ret;
@@ -492,6 +520,8 @@ int ad4111_init(void) {
 	ret = ad4111_set_ifmode();
 	if(ret != 0) return ret;
 
+
+	// setup/filter/data rate for all thermocouples
 	ad4111_setupcon_t thermocouple_setupcon;
 	thermocouple_setupcon.reg = AD4111_SETUPCON0_REG;
 	thermocouple_setupcon.bi_unipolar = UNIPOLAR;
@@ -511,25 +541,110 @@ int ad4111_init(void) {
 	ret = ad4111_set_filter(thermocouple_filter);
 	if(ret != 0) return ret;
 
-	ad4111_channel_t thermocouple0;
-	thermocouple0.reg = AD4111_CHANNEL_0_REG;
-	thermocouple0.ch_en = 1;
-	thermocouple0.setup_sel = 0;
-	thermocouple0.input = VIN7_VINCOM;
-	ret = ad4111_set_channel(thermocouple0);
+	// thermocouple channels: 0..3
+	ad4111_channel_t thermocouple;
+	thermocouple.reg = AD4111_CHANNEL_0_REG;
+	thermocouple.ch_en = 1;
+	thermocouple.setup_sel = 0;
+	thermocouple.input = VIN7_VINCOM;
+	ret = ad4111_set_channel(thermocouple);
+	if(ret != 0) return ret;
+
+	thermocouple.reg = AD4111_CHANNEL_1_REG;
+	thermocouple.input = VIN6_VINCOM;
+	ret = ad4111_set_channel(thermocouple);
+	if(ret != 0) return ret;
+
+	thermocouple.reg = AD4111_CHANNEL_2_REG;
+	thermocouple.input = VIN5_VINCOM;
+	ret = ad4111_set_channel(thermocouple);
+	if(ret != 0) return ret;
+
+	thermocouple.reg = AD4111_CHANNEL_3_REG;
+	thermocouple.input = VIN4_VINCOM;
+	ret = ad4111_set_channel(thermocouple);
 	if(ret != 0) return ret;
 
 
-	/* 
-	use this for current measurements
-	
-	ad4111_setup_t setup1;
-	setup1.setup_id = 	...
-	setup0.bi_unipolar	= UNIPOLAR;
-	setup0.refbuf_plus 	= 0;
-	setup0.refbuf_minus = 0;
-	setup0.ref_sel 		= INTERNAL_REF;
-	*/
+	// setup/filter/data rate for all pressure gauges
+	ad4111_setupcon_t pressure_gauge_setupcon;
+	pressure_gauge_setupcon.reg = AD4111_SETUPCON1_REG;
+	pressure_gauge_setupcon.bi_unipolar = BIPOLAR;
+	pressure_gauge_setupcon.refbuf_plus = 0;
+	pressure_gauge_setupcon.refbuf_minus = 0;
+	pressure_gauge_setupcon.inbuf = AD4111_INBUF_DISABLED;
+	pressure_gauge_setupcon.ref_sel = INTERNAL_REF;
+	ret = ad4111_set_setupcon(pressure_gauge_setupcon);
+	if(ret != 0) return ret;
+
+	ad4111_filter_t pressure_gauge_filter;
+	pressure_gauge_filter.reg = AD4111_FILTCON1_REG;
+	pressure_gauge_filter.enhfilten = AD4111_ENHFILT_DISABLED;
+	pressure_gauge_filter.enhfilt = AD4111_ENHFILT_27SPS_47DB;
+	pressure_gauge_filter.order = AD4111_FILTER_SINC5_SINC1;
+	pressure_gauge_filter.odr = AD4111_ODR_200_SPS;
+	ret = ad4111_set_filter(pressure_gauge_filter);
+	if(ret != 0) return ret;
+
+	// pressure gauge channels: 4..7
+	ad4111_channel_t pressure_gauge;
+	pressure_gauge.reg = AD4111_CHANNEL_4_REG;
+	pressure_gauge.ch_en = 1;
+	pressure_gauge.setup_sel = 1;
+	pressure_gauge.input = IIN3P_IIN3M;
+	ret = ad4111_set_channel(pressure_gauge);
+	if(ret != 0) return ret;
+
+	pressure_gauge.reg = AD4111_CHANNEL_5_REG;
+	pressure_gauge.input = IIN2P_IIN2M;
+	ret = ad4111_set_channel(pressure_gauge);
+	if(ret != 0) return ret;
+
+	pressure_gauge.reg = AD4111_CHANNEL_6_REG;
+	pressure_gauge.input = IIN1P_IIN1M;
+	ret = ad4111_set_channel(pressure_gauge);
+	if(ret != 0) return ret;
+
+	pressure_gauge.reg = AD4111_CHANNEL_7_REG;
+	pressure_gauge.input = IIN0P_IIN0M;
+	ret = ad4111_set_channel(pressure_gauge);
+	if(ret != 0) return ret;
+
+
+	// setup/filter/data rate for all RTDs
+	ad4111_setupcon_t RTD_setupcon;
+	RTD_setupcon.reg = AD4111_SETUPCON2_REG;
+	RTD_setupcon.bi_unipolar = BIPOLAR;
+	RTD_setupcon.refbuf_plus = 1;
+	RTD_setupcon.refbuf_minus = 1;
+	RTD_setupcon.inbuf = AD4111_INBUF_ENABLED;
+	RTD_setupcon.ref_sel = INTERNAL_REF;
+	ret = ad4111_set_setupcon(RTD_setupcon);
+	if(ret != 0) return ret;
+
+	ad4111_filter_t RTD_filter;
+	RTD_filter.reg = AD4111_FILTCON2_REG;
+	RTD_filter.enhfilten = AD4111_ENHFILT_DISABLED;
+	RTD_filter.enhfilt = AD4111_ENHFILT_27SPS_47DB;
+	RTD_filter.order = AD4111_FILTER_SINC5_SINC1;
+	RTD_filter.odr = AD4111_ODR_200_SPS;
+	ret = ad4111_set_filter(RTD_filter);
+	if(ret != 0) return ret;
+
+	// RTD channels: 8..9
+	ad4111_channel_t RTD;
+	RTD.reg = AD4111_CHANNEL_8_REG;
+	RTD.ch_en = 1;
+	RTD.setup_sel = 2;
+	RTD.input = VIN0_VIN1;
+	ret = ad4111_set_channel(RTD);
+	if(ret != 0) return ret;
+
+	RTD.reg = AD4111_CHANNEL_9_REG;
+	RTD.input = VIN2_VIN3;
+	ret = ad4111_set_channel(RTD);
+	if(ret != 0) return ret;
+
 
     k_thread_start(ad4111_thread);
 

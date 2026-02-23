@@ -83,15 +83,12 @@ int initialize_pins(void) {
 	ret = gpio_pin_configure_dt(&g_led, GPIO_OUTPUT_ACTIVE);
 	ret = gpio_pin_configure_dt(&tx_led, GPIO_OUTPUT_ACTIVE);
 
-	ret = gpio_pin_configure_dt(&chipselect, GPIO_OUTPUT_INACTIVE);
-
+	ret = gpio_pin_configure_dt(&chipselect, GPIO_OUTPUT_INACTIVE); // TODO: Move this ad4111.c
 	gpio_pin_set_dt(&chipselect, 1);
 
 	if (ret < 0) LOG_ERR("FAILED TO CONFIGURE LED");
-	
 
 	if (!gpio_is_ready_dt(&r_led)) LOG_ERR("LED NOT READY");
-
 
 	gpio_pin_toggle_dt(&g_led);
 	ret = gpio_pin_configure_dt(&r_led, GPIO_OUTPUT_ACTIVE);
@@ -99,35 +96,6 @@ int initialize_pins(void) {
 	gpio_pin_toggle_dt(&g_led);
 	return ret;
 }
-
-/*
-int initialize_interrupt() {
-	int ret;
-
-	if (!gpio_is_ready_dt(&miso_spec)) {
-		LOG_ERR("Error: button device %s is not ready\n",
-		       miso_spec.port->name);
-		return 1;
-	}
-
-	ret = gpio_pin_configure_dt(&miso_spec, GPIO_INPUT);
-	if (ret != 0) {
-		printk("Error %d: failed to configure %s pin %d\n",
-		       ret, miso_spec.port->name, miso_spec.pin);
-		return 1;
-	}
-
-	// ret = gpio_pin_configure_dt(&miso_spec, GPIO_INPUT);
-	ret = gpio_pin_interrupt_configure_dt(&miso_spec, GPIO_INT_EDGE_TO_INACTIVE);
-	if (ret != 0) {
-		printk("Error %d: failed to configure interrupt on %s pin %d\n",
-			ret, miso_spec.port->name, miso_spec.pin);
-		return 1;
-	}
-	gpio_init_callback(&miso_cb_data, miso_interrupt_handler, BIT(miso_spec.pin));
-	gpio_add_callback(miso_spec.port, &miso_cb_data);
-}
-*/
 
 void flash_led(void) { 
 	gpio_pin_toggle_dt(&g_led);
@@ -147,12 +115,22 @@ void error_sequence_led(void) {
 	}
 }
 
+// Convert an arry of floats into a packed array of 2 bytes
+void floats_to_bytes(uint8_t *bytes, float *floats, int n, float factor) {
+	for (int i = 0; i < n; i++) {
+		uint16_t value = factor * floats[i];
+		bytes[2*i] = (value << 8);
+		bytes[2*i+1] = (value);
+	}
+}
+
 int main(void) {
 
 	int ret;
 	ret = initialize_pins();
 	if (ret != 0) {
 		LOG_ERR("FAILED TO CONFIGURE PINS");
+		error_sequence_led();
 		return 0;
 	}
 	// ret = initialize_interrupt();
@@ -164,91 +142,55 @@ int main(void) {
 	// runsetupspi();
 	flash_led();
 
-	ret = ad4111_init();
-	if (ret !=0) {
-		error_sequence_led();
-		return 0;
-	}
+	// ret = ad4111_init();
+	// if (ret !=0) {
+	// 	error_sequence_led();
+	// 	return 0;
+	// }
 
+	init_can();
+	// uint8_t batch_data[20]; // data from a full batch of all channels, scaled to nV
+	// int16_t channel_readout_stat = 0; // is 0000001111111111 when all 10 channels are read out
 
+	// struct running_average adc_running_averages[10];
+
+	init_sensors();
+	float V_TO_mV_factor = 1000, A_TO_mA_factor = 1000;
 	while(true) {
-		uint8_t *data = ad4111_get_data();
-		if(!ad4111_is_running()) {
-			gpio_pin_toggle_dt(&r_led);
-		} else {
-			gpio_pin_set_dt(&r_led, 1);
+		k_msleep(5000);
+		// Thermalcouples CAN message
+		float thermocouple_voltages[4];
+		uint8_t thermocouple_bytes[8];
+		ret = thermocouple_get_voltages(thermocouple_voltages);
+		if(ret < 0) {
+			error_sequence_led();
+			continue;
 		}
-		// if(data[0]){
-			gpio_pin_toggle_dt(&tx_led);
-		// }
-		if(data[3]==0x00)
-			gpio_pin_toggle_dt(&g_led);
-		k_msleep(500);
+		floats_to_bytes(thermocouple_bytes, thermocouple_voltages, 4, V_TO_mV_factor);
+		submit_can_pkt(0x120, thermocouple_bytes, 8);
+
+		// Pressure guages CAN message
+		float pressure_gauges_currents[4];
+		uint8_t pressure_guages_bytes[8];
+		ret = pressure_gauges_get_currents(pressure_gauges_currents);
+		if(ret < 0) {
+			error_sequence_led();
+			continue;
+		}
+		floats_to_bytes(pressure_guages_bytes, pressure_gauges_currents, 4, A_TO_mA_factor);
+		submit_can_pkt(0x121, pressure_guages_bytes, 8);
+
+		// RTDs CAN message
+		float rtd_voltages[2];
+		uint8_t rtd_bytes[4];
+		ret = rtds_get_voltages(rtd_voltages);
+		if(ret < 0) {
+			error_sequence_led();
+			continue;
+		}
+		floats_to_bytes(rtd_bytes, rtd_voltages, 2, V_TO_mV_factor);
+		submit_can_pkt(0x122, rtd_bytes, 4);
 	}
-
-
 	
-	// init_can();
-	// add_filter_can(can_rx_cb, test_filter, NULL);
-
-	// init_sensors();
-	/*
-	int i = 0;
-	while(true) {
-		i++;
-
-		// gpio_pin_toggle_dt(&r_led);
-		// if(spi_adc_int_count > 0) {
-		// 	spi_adc_int_count = 0;
-		// 	int x = runspitest();
-		// 	gpio_pin_toggle_dt(&g_led);
-		// }
-		// gpio_pin_toggle_dt(&r_led);
-		// int y = gpio_pin_get_dt(&miso_spec);
-		if (spi_adc_int_count > 0) {
-			spi_adc_int_count = 0;
-			gpio_pin_toggle_dt(&r_led);
-		// if (y == 0) {
-		// if (1) {
-			// spi_adc_int_count = 0;
-			uint8_t data[4];
-
-			ret = gpio_pin_interrupt_configure_dt(&miso_spec, GPIO_INT_DISABLE);
-			if (ret != 0) {
-				printk("Error %d: failed to configure interrupt on %s pin %d\n",
-					ret, miso_spec.port->name, miso_spec.pin);
-				return 0;
-			}
-
-			// runspitest(data);
-
-			ret = gpio_pin_interrupt_configure_dt(&miso_spec, GPIO_INT_EDGE_TO_INACTIVE);
-			if (ret != 0) {
-				printk("Error %d: failed to configure interrupt on %s pin %d\n",
-					ret, miso_spec.port->name, miso_spec.pin);
-				return 0;
-			}
-			if(data[3] != 0) {
-				gpio_pin_toggle_dt(&tx_led);
-			}
-			if(i > 0) {
-			// if(i > 5000000) {
-				// submit_can_pkt(data, 4);
-				i = 0;
-			}
-
-		} 
-
-		k_msleep(10);
-		// uint8_t testing[]={0xAA,0xBB};
-		// submit_can_pkt(testing, 2);
-		// k_usleep(100);
-	}
-
-	// brown = VCC
-	// blue = Iout
-	*/
-
-
 	return 0;
 }
