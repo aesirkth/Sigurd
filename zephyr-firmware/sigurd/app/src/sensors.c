@@ -37,7 +37,7 @@ void sensor_thread_fn(void) {
 		int channel = ad4111_get_data_blocking(&data_reg);
 		if(channel < 0) {
             sensors_working = 0;
-            continue;
+            continue; //TODO: Investigate how often this path is taken.
         }
 
         if (k_mutex_lock(&sensor_data_mutex, K_MSEC(500))) {
