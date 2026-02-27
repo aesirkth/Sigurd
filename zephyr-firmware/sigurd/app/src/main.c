@@ -119,8 +119,19 @@ void error_sequence_led(void) {
 void floats_to_bytes(uint8_t *bytes, float *floats, int n, float factor) {
 	for (int i = 0; i < n; i++) {
 		uint16_t value = factor * floats[i];
-		bytes[2*i] = (value << 8);
-		bytes[2*i+1] = (value);
+		// uint16_t value = floats[i]*10000-545;
+		bytes[2*i] = (value >> 8 & 0xFF);
+		bytes[2*i+1] = (value & 0xFF);
+	}
+}
+
+void floats_to_degrees(uint8_t *bytes, float *floats, int n) {
+	for (int i = 0; i < n; i++) {
+		// uint16_t value = factor * floats[i];
+		// uint16_t value = floats[i]*10000-545;
+		uint16_t value = floats[i]*10000-545;
+		bytes[2*i] = (value >> 8 & 0xFF);
+		bytes[2*i+1] = (value & 0xFF);
 	}
 }
 
@@ -155,9 +166,9 @@ int main(void) {
 	// struct running_average adc_running_averages[10];
 
 	init_sensors();
-	float V_TO_mV_factor = 1000, A_TO_mA_factor = 1000;
+	float V_TO_mV_factor = 1000, A_TO_uA_factor = 1000000;
 	while(true) {
-		k_msleep(5000);
+		k_msleep(1000);
 		// Thermalcouples CAN message
 		float thermocouple_voltages[4];
 		uint8_t thermocouple_bytes[8];
@@ -167,7 +178,7 @@ int main(void) {
 			continue;
 		}
 		floats_to_bytes(thermocouple_bytes, thermocouple_voltages, 4, V_TO_mV_factor);
-		submit_can_pkt(0x120, thermocouple_bytes, 8);
+		// submit_can_pkt(0x120, thermocouple_bytes, 8);
 
 		// Pressure guages CAN message
 		float pressure_gauges_currents[4];
@@ -177,8 +188,8 @@ int main(void) {
 			error_sequence_led();
 			continue;
 		}
-		floats_to_bytes(pressure_guages_bytes, pressure_gauges_currents, 4, A_TO_mA_factor);
-		submit_can_pkt(0x121, pressure_guages_bytes, 8);
+		floats_to_bytes(pressure_guages_bytes, pressure_gauges_currents, 4, A_TO_uA_factor);
+		// submit_can_pkt(0x121, pressure_guages_bytes, 8);
 
 		// RTDs CAN message
 		float rtd_voltages[2];
@@ -188,7 +199,7 @@ int main(void) {
 			error_sequence_led();
 			continue;
 		}
-		floats_to_bytes(rtd_bytes, rtd_voltages, 2, V_TO_mV_factor);
+		floats_to_degrees(rtd_bytes, rtd_voltages, 2);
 		submit_can_pkt(0x122, rtd_bytes, 4);
 	}
 	

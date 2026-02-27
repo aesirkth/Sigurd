@@ -28,13 +28,13 @@ static inline float data_to_volts_unipolar(int32_t data) {
 	return volts;
 }
 
-static inline float data_to_volts_bipolar(int32_t data) {
-	float code = data;
-	float vref = 2.5;
-	float two_to_the_power_23 = 2 << (23 - 1);
-	float volts = (code/two_to_the_power_23-1) * vref/0.1f;
-	return volts;
-}
+// static inline float data_to_volts_bipolar(int32_t data) {
+// 	float code = data;
+// 	float vref = 2.5;
+// 	float two_to_the_power_23 = 2 << (23 - 1);
+// 	float volts = (code/two_to_the_power_23-1) * vref/0.1f;
+// 	return volts;
+// }
 
 static inline float data_to_amps_bipolar(int32_t data) {
 	float code = data;
@@ -42,6 +42,16 @@ static inline float data_to_amps_bipolar(int32_t data) {
 	float two_to_the_power_23 = 2 << (23 - 1);
 	float amps = (code/two_to_the_power_23-1) * vref/50;
 	return amps;
+}
+
+static inline float data_to_volts_bipolar(int32_t data) {
+	float code = data;
+	float vref = 2.5;
+	float two_to_the_power_23 = 2 << (23 - 1);
+	// float volts = (code/two_to_the_power_23-1) * vref/0.1f;
+	float volts = 10*(1 - code/two_to_the_power_23)*vref;
+	// (1 - codeneg24/2**23)*vref
+	return volts;
 }
 
 #endif
